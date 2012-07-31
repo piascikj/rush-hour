@@ -1,5 +1,4 @@
-var app = require('express').createServer();
-
+var _ = require('underscore');
 function getClientIp(req) {
   var ipAddress;
   // Amazon EC2 / Heroku workaround to get real client IP
@@ -19,6 +18,37 @@ function getClientIp(req) {
   return ipAddress;
 };
 
+function onRequest(req, res){
+	console.log("body:",req.body);
+	var doc = {
+		query_params:req.query, 
+		body:req.body,
+		clientIp:getClientIp(req),
+		cookies:req.cookies,
+		timestamp: new Date()
+	};
+	
+	var nCookies = {};
+	_.each(doc.cookies, function(val, key) {
+		nCookies[key.replace(".","_dot_")] = val;
+	});
+	
+	doc.cookies = nCookies;
+	
+	console.log("doc:",doc);
+	
+	db.collection('requests', function(err, collection) {
+	  collection.insert(doc, function(err, result) {
+		if(!err) {
+			res.send(doc);
+		} else {
+			res.send(err);
+		}
+	  });
+	});
+}
+
+
 //Open the DB
 var mongo = require('mongodb'),
   Server = mongo.Server,
@@ -31,21 +61,14 @@ db.open(function(err, db) {
   }
 });
 
-app.get('/rush-hour.gif', function(req, res){
-	var doc = {query:req.query, 
-		params:req.params,
-		clientIp:getClientIp(req),
-		timestamp: new Date()};
-	db.collection('requests', function(err, collection) {
-	  collection.insert(doc, function(err, result) {
-		if(!err) {
-			res.send(doc);
-		} else {
-			res.send(err);
-		}
-	  });
-	});
-	//console.log("doc:",doc);
-});
+//Start the server
+var express = require('express');
+var app = express.createServer();
+
+app.use(express.cookieParser());
+app.use(express.bodyParser());
+
+app.get('/rush-hour.gif', onRequest);
+app.post('/rush-hour.gif', onRequest);
 
 app.listen(8080);
