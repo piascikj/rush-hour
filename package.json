@@ -1,0 +1,10 @@
+{
+   "name" : "rush-hour",
+   "version" : "0.0.1",
+   "dependencies" : {
+      "express" : "2.5.9",
+      "underscore" : "1.3.3",
+      "mongodb" : "1.0.2",
+      "threads_a_gogo" : "0.1.4"
+   }
+}
